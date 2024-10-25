@@ -4,6 +4,7 @@ import com.kk.springecom.springecom.model.Product;
 import com.kk.springecom.springecom.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,13 +44,74 @@ public class ProductController {
     }
 
     @PostMapping("/product")
-    public ResponseEntity<?> addProduct(@RequestPart Product product, @RequestPart MultipartFile image) {
+    public ResponseEntity<?> addProduct(@RequestPart Product product, @RequestPart MultipartFile imageFile) {
         Product savedProduct = null;
         try {
-            savedProduct = productService.addProduct(product, image);
+            savedProduct = productService.addOrUpdateProduct(product, imageFile);
             return new ResponseEntity<>(savedProduct, HttpStatus.CREATED);
         } catch (IOException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @GetMapping("/addTestProducts")
+    public ResponseEntity<?> addTestProducts() {
+        try {
+            {
+                List<Product> productsAdded = productService.addTestProducts();
+                return new ResponseEntity<>(productsAdded, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PutMapping("/product/{id}")
+    public ResponseEntity<?> updateProduct(@PathVariable("id") int id, @RequestPart Product product, @RequestPart MultipartFile imageFile) {
+        try {
+            Optional<Product> productById = productService.getProductById(id);
+            if (productById.isPresent()) {
+//                product.setId(productId);
+                return new ResponseEntity<>(productService.addOrUpdateProduct(product, imageFile), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+           return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @DeleteMapping("/product/{id}")
+    public ResponseEntity<?> deleteProduct(@PathVariable("id") int id) {
+        try {
+            Optional<Product> productById = productService.getProductById(id);
+            if (productById.isPresent()) {
+                productService.deleteProduct(id);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @GetMapping(
+            value = "product/{productId}/image",
+            produces = MediaType.IMAGE_JPEG_VALUE // to send response in this format
+//            produces = MediaType.APPLICATION_OCTET_STREAM_VALUE
+    )
+    public ResponseEntity<byte[]> getImageByProductId(@PathVariable int productId) {
+        Optional<Product> productById = productService.getProductById(productId);
+        return productById.map(product -> new ResponseEntity<>(product.getImageData(), HttpStatus.OK)).orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @GetMapping("/products/search")
+    public ResponseEntity<List<Product>> searchProducts(@RequestParam String keyword) {
+        List<Product> products = productService.searchProducts(keyword);
+        System.out.println("Searching with keyword: " + keyword);
+        return new ResponseEntity<>(products, HttpStatus.OK);
+    }
+
+
 }

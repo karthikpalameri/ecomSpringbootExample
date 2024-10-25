@@ -21,7 +21,7 @@ public class Product {
     private String description;
     private String brand;
     private BigDecimal price;
-    private String catagory;
+    private String category;
     // Specifies the format for the releaseDate field as a string in "dd-MM-yyyy" format.
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
     private Date releaseDate;
